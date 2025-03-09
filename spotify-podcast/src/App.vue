@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import HelloWorld from "./components/HelloWorld.vue";
-
-import Spotify from "./components/SpotifyAccess.vue";
+import SpotifyAuthorize from "./components/SpotifyAuthorize.vue";
 </script>
 
 <template>
-  <Spotify />
+  <SpotifyAuthorize />
 </template>
 
 <style scoped></style>

@@ -1,44 +1,52 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { onMounted } from "vue";
 
-const clientId = "388dcaf144944b57bc090f478c6a5cbc";
+const clientId: string = "388dcaf144944b57bc090f478c6a5cbc";
 
-const redirectUrl = "http://127.0.0.1:5173"; // your redirect URL - must be localhost URL and/or HTTPS
+const redirectUrl: string = "http://127.0.0.1:5173"; // your redirect URL - must be localhost URL and/or HTTPS
 
-const authorizationEndpoint = "https://accounts.spotify.com/authorize";
-const tokenEndpoint = "https://accounts.spotify.com/api/token";
-const scope = "user-read-private user-read-email";
+const authorizationEndpoint: string = "https://accounts.spotify.com/authorize";
+const tokenEndpoint: string = "https://accounts.spotify.com/api/token";
+const scope: string = "user-read-private user-read-email";
+
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}
 
 // Data structure that manages the current active token, caching it in localStorage
 const currentToken = {
-  get access_token() {
-    return localStorage.getItem("access_token") || null;
+  get access_token(): string | null {
+    return localStorage.getItem("access_token");
   },
-  get refresh_token() {
-    return localStorage.getItem("refresh_token") || null;
+  get refresh_token(): string | null {
+    return localStorage.getItem("refresh_token");
   },
-  get expires_in() {
-    return localStorage.getItem("refresh_in") || null;
+  get expires_in(): string | null {
+    // Note: this uses "refresh_in" instead of "expires_in" as the key. Keeping as-is.
+    return localStorage.getItem("refresh_in");
   },
-  get expires() {
-    return localStorage.getItem("expires") || null;
+  get expires(): string | null {
+    return localStorage.getItem("expires");
   },
 
-  save: function (response) {
+  save: function (response: TokenResponse): void {
     const { access_token, refresh_token, expires_in } = response;
     localStorage.setItem("access_token", access_token);
     localStorage.setItem("refresh_token", refresh_token);
-    localStorage.setItem("expires_in", expires_in);
+    localStorage.setItem("expires_in", expires_in.toString());
 
     const now = new Date();
     const expiry = new Date(now.getTime() + expires_in * 1000);
-    localStorage.setItem("expires", expiry);
+    // Convert Date to string to store it
+    localStorage.setItem("expires", expiry.toString());
   },
 };
 
-// Soptify API Calls
-async function getToken(code) {
-  const code_verifier = localStorage.getItem("code_verifier");
+// Spotify API Calls
+async function getToken(code: string): Promise<TokenResponse> {
+  const code_verifier: string | null = localStorage.getItem("code_verifier");
   const response = await fetch(tokenEndpoint, {
     method: "POST",
     headers: {
@@ -49,15 +57,15 @@ async function getToken(code) {
       grant_type: "authorization_code",
       code: code,
       redirect_uri: redirectUrl,
-      code_verifier: code_verifier,
+      code_verifier: code_verifier || "",
     }),
   });
 
   return await response.json();
 }
 
-async function redirectToSpotifyAuthorize() {
-  const possible =
+async function redirectToSpotifyAuthorize(): Promise<void> {
+  const possible: string =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const randomValues = crypto.getRandomValues(new Uint8Array(64));
   const randomString = randomValues.reduce(
@@ -65,7 +73,7 @@ async function redirectToSpotifyAuthorize() {
     ""
   );
 
-  const code_verifier = randomString;
+  const code_verifier: string = randomString;
   const data = new TextEncoder().encode(code_verifier);
   const hashed = await crypto.subtle.digest("SHA-256", data);
 
@@ -92,7 +100,7 @@ async function redirectToSpotifyAuthorize() {
   window.location.href = authUrl.toString(); // Redirect the user to the authorization server for login
 }
 
-async function handleCallback() {
+async function handleSpotifyCallback(): Promise<void> {
   // On page load, try to fetch auth code from current browser search URL
   const args = new URLSearchParams(window.location.search);
   const code = args.get("code");
@@ -113,12 +121,12 @@ async function handleCallback() {
 }
 
 onMounted(() => {
-  handleCallback();
+  handleSpotifyCallback();
 });
 </script>
 
 <template>
-  <button @click="redirectToSpotifyAuthorize">Click</button>
+  <button @click="redirectToSpotifyAuthorize">Authorize Spotify</button>
 </template>
 
 <style scoped></style>
