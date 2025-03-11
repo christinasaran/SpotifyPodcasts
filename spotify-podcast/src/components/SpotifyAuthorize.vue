@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, onUnmounted } from "vue";
 
 const clientId: string = "388dcaf144944b57bc090f478c6a5cbc";
 
@@ -64,6 +64,22 @@ async function getToken(code: string): Promise<TokenResponse> {
   return await response.json();
 }
 
+async function refreshToken(): Promise<TokenResponse> {
+  const response = await fetch(tokenEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      client_id: clientId,
+      grant_type: "refresh_token",
+      refresh_token: currentToken.refresh_token,
+    }),
+  });
+
+  return await response.json();
+}
+
 async function redirectToSpotifyAuthorize(): Promise<void> {
   const possible: string =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -100,6 +116,13 @@ async function redirectToSpotifyAuthorize(): Promise<void> {
   window.location.href = authUrl.toString(); // Redirect the user to the authorization server for login
 }
 
+async function refreshTokenClick(): Promise<void> {
+  const token = await refreshToken();
+  console.log("@pre save: ", currentToken.expires);
+  currentToken.save(token);
+  console.log("@post save: ", currentToken.expires);
+}
+
 async function handleSpotifyCallback(): Promise<void> {
   // On page load, try to fetch auth code from current browser search URL
   const args = new URLSearchParams(window.location.search);
@@ -108,7 +131,6 @@ async function handleSpotifyCallback(): Promise<void> {
   // If we find a code, we're in a callback, do a token exchange
   if (code) {
     const token = await getToken(code);
-    debugger;
     currentToken.save(token);
 
     // Remove code from URL so we can refresh correctly.
@@ -118,15 +140,70 @@ async function handleSpotifyCallback(): Promise<void> {
     const updatedUrl = url.search ? url.href : url.href.replace("?", "");
     window.history.replaceState({}, document.title, updatedUrl);
   }
+  // If we have a token, we're logged in, so fetch user data and render logged in template
+  if (currentToken.access_token) {
+    const userData = await getUserData();
+    console.log(userData);
+  }
+}
+
+async function getUserData() {
+  const response = await fetch("https://api.spotify.com/v1/me", {
+    method: "GET",
+    headers: { Authorization: "Bearer " + currentToken.access_token },
+  });
+
+  return await response.json();
+}
+
+async function getPodcastList() {
+  // GET request supports query parameters
+  const params = new URLSearchParams({
+    q: "exercize",
+    type: "show",
+    limit: 20,
+  });
+  const response = await fetch(
+    `https://api.spotify.com/v1/search?${params.toString()}`,
+    {
+      method: "GET",
+      headers: { Authorization: "Bearer " + currentToken.access_token },
+    }
+  );
+  const res = await response.json();
+  console.log(res);
+  return res;
 }
 
 onMounted(() => {
   handleSpotifyCallback();
 });
-</script>
 
+onUnmounted(() => {
+  localStorage.clear(); // localStorage persists across sessions, fresh authentication
+});
+</script>
 <template>
-  <button @click="redirectToSpotifyAuthorize">Authorize Spotify</button>
+  <header class="p-4 justify-between items-center">
+    <div class="text-white text-xl font-bold mb-6">Spotify App</div>
+    <div class="space-x-4">
+      <button
+        @click="redirectToSpotifyAuthorize"
+        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+      >
+        Authorize Spotify
+      </button>
+      <button
+        @click="refreshTokenClick"
+        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+      >
+        Refresh Token
+      </button>
+    </div>
+  </header>
+  <div>
+    <button @click="getPodcastList">Click for Podcast list</button>
+  </div>
 </template>
 
 <style scoped></style>
