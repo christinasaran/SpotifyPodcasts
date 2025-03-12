@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
+import InputSearch from "./InputSearch.vue";
 
 const clientId: string = "388dcaf144944b57bc090f478c6a5cbc";
-
 const redirectUrl: string = "http://127.0.0.1:5173"; // your redirect URL - must be localhost URL and/or HTTPS
-
 const authorizationEndpoint: string = "https://accounts.spotify.com/authorize";
 const tokenEndpoint: string = "https://accounts.spotify.com/api/token";
 const scope: string = "user-read-private user-read-email";
@@ -64,7 +63,9 @@ async function getToken(code: string): Promise<TokenResponse> {
   return await response.json();
 }
 
-async function refreshToken(): Promise<TokenResponse> {
+async function refreshToken(): Promise<TokenResponse | null> {
+  if (!currentToken.refresh_token) return null; // Ensure refresh_token exists before making the request
+
   const response = await fetch(tokenEndpoint, {
     method: "POST",
     headers: {
@@ -119,6 +120,10 @@ async function redirectToSpotifyAuthorize(): Promise<void> {
 async function refreshTokenClick(): Promise<void> {
   const token = await refreshToken();
   console.log("@pre save: ", currentToken.expires);
+  if (!token) {
+    console.error("Failed to refresh token");
+    return;
+  }
   currentToken.save(token);
   console.log("@post save: ", currentToken.expires);
 }
@@ -140,29 +145,20 @@ async function handleSpotifyCallback(): Promise<void> {
     const updatedUrl = url.search ? url.href : url.href.replace("?", "");
     window.history.replaceState({}, document.title, updatedUrl);
   }
-  // If we have a token, we're logged in, so fetch user data and render logged in template
-  if (currentToken.access_token) {
-    const userData = await getUserData();
-    console.log(userData);
-  }
 }
 
-async function getUserData() {
-  const response = await fetch("https://api.spotify.com/v1/me", {
-    method: "GET",
-    headers: { Authorization: "Bearer " + currentToken.access_token },
-  });
+async function getPodcastList(query: string): Promise<any> {
+  if (!query.trim()) return; // Avoid empty searches
 
-  return await response.json();
-}
+  console.log("Fetching API with query:", query);
 
-async function getPodcastList() {
   // GET request supports query parameters
   const params = new URLSearchParams({
-    q: "exercize",
+    q: query,
     type: "show",
-    limit: 20,
+    limit: "20",
   });
+
   const response = await fetch(
     `https://api.spotify.com/v1/search?${params.toString()}`,
     {
@@ -175,6 +171,10 @@ async function getPodcastList() {
   return res;
 }
 
+// UI related for search podcast
+// import { ref } from "vue";
+// const query = ref("");
+
 onMounted(() => {
   handleSpotifyCallback();
 });
@@ -184,26 +184,24 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <header class="p-4 justify-between items-center">
-    <div class="text-white text-xl font-bold mb-6">Spotify App</div>
-    <div class="space-x-4">
+  <header class="flex p-4 justify-between items-center bg-black pb-6">
+    <h1 class="text-white text-2xl font-bold">Spotify Podcast Search</h1>
+    <div class="flex space-x-4">
       <button
         @click="redirectToSpotifyAuthorize"
-        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
       >
         Authorize Spotify
       </button>
       <button
         @click="refreshTokenClick"
-        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
       >
         Refresh Token
       </button>
     </div>
   </header>
-  <div>
-    <button @click="getPodcastList">Click for Podcast list</button>
-  </div>
+  <InputSearch @search="getPodcastList" />
 </template>
 
 <style scoped></style>
