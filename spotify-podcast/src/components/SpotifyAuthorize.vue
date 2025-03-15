@@ -1,12 +1,49 @@
+<template>
+  <header
+    class="flex flex-col md:flex-row p-4 gap-3 justify-between items-center bg-black pb-6"
+  >
+    <h1 class="text-white text-2xl font-bold">Spotify Podcast Search</h1>
+    <div class="flex space-x-4">
+      <button
+        @click="redirectToSpotifyAuthorize"
+        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
+      >
+        Authorize Spotify
+      </button>
+      <button
+        @click="refreshTokenClick"
+        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
+      >
+        Refresh Token
+      </button>
+    </div>
+  </header>
+  <InputSearch @search="getPodcastList" />
+  <PodcastList
+    v-if="!showCalendar"
+    :selectedPodcasts="selectedPodcasts"
+    :podcasts="podcasts"
+    @generate-calendar="showCalendarComponent"
+  />
+  <Calendar :episodeList="episodeList" v-else />
+</template>
+
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import InputSearch from "./InputSearch.vue";
+import PodcastList from "./PodcastList.vue";
+import Calendar from "./Calendar.vue";
+import type { Podcast, EpisodeList } from "../types/podcast";
 
 const clientId: string = "388dcaf144944b57bc090f478c6a5cbc";
 const redirectUrl: string = "http://127.0.0.1:5173"; // your redirect URL - must be localhost URL and/or HTTPS
 const authorizationEndpoint: string = "https://accounts.spotify.com/authorize";
 const tokenEndpoint: string = "https://accounts.spotify.com/api/token";
 const scope: string = "user-read-private user-read-email";
+let podcasts = ref<Podcast[]>([]);
+let episodeList = ref<EpisodeList[]>([]);
+let selectedPodcasts = ref<Podcast[]>([]);
+const showCalendar = ref(false);
 
 interface TokenResponse {
   access_token: string;
@@ -119,13 +156,11 @@ async function redirectToSpotifyAuthorize(): Promise<void> {
 
 async function refreshTokenClick(): Promise<void> {
   const token = await refreshToken();
-  console.log("@pre save: ", currentToken.expires);
   if (!token) {
     console.error("Failed to refresh token");
     return;
   }
   currentToken.save(token);
-  console.log("@post save: ", currentToken.expires);
 }
 
 async function handleSpotifyCallback(): Promise<void> {
@@ -149,9 +184,6 @@ async function handleSpotifyCallback(): Promise<void> {
 
 async function getPodcastList(query: string): Promise<any> {
   if (!query.trim()) return; // Avoid empty searches
-
-  console.log("Fetching API with query:", query);
-
   // GET request supports query parameters
   const params = new URLSearchParams({
     q: query,
@@ -167,13 +199,39 @@ async function getPodcastList(query: string): Promise<any> {
     }
   );
   const res = await response.json();
-  console.log(res);
+
+  podcasts.value = res.shows.items;
+  selectedPodcasts.value = [];
+  return podcasts.value;
+}
+async function getEpisodeList(id: string): Promise<any> {
+  const response = await fetch(
+    `https://api.spotify.com/v1/shows/${id}/episodes`,
+    {
+      method: "GET",
+      headers: { Authorization: "Bearer " + currentToken.access_token },
+    }
+  );
+  const res = await response.json();
   return res;
 }
 
-// UI related for search podcast
-// import { ref } from "vue";
-// const query = ref("");
+function showCalendarComponent() {
+  showCalendar.value = true;
+  episodeList.value = [];
+
+  for (const podcast of selectedPodcasts.value) {
+    getEpisodeList(podcast.id).then((res) => {
+      episodeList.value.push({
+        podcastId: podcast.id,
+        podcastName: podcast.name,
+        episodes: res.items,
+      });
+    });
+  }
+
+  console.log(episodeList.value);
+}
 
 onMounted(() => {
   handleSpotifyCallback();
@@ -183,25 +241,5 @@ onUnmounted(() => {
   localStorage.clear(); // localStorage persists across sessions, fresh authentication
 });
 </script>
-<template>
-  <header class="flex p-4 justify-between items-center bg-black pb-6">
-    <h1 class="text-white text-2xl font-bold">Spotify Podcast Search</h1>
-    <div class="flex space-x-4">
-      <button
-        @click="redirectToSpotifyAuthorize"
-        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
-      >
-        Authorize Spotify
-      </button>
-      <button
-        @click="refreshTokenClick"
-        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
-      >
-        Refresh Token
-      </button>
-    </div>
-  </header>
-  <InputSearch @search="getPodcastList" />
-</template>
 
 <style scoped></style>

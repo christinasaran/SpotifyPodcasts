@@ -1,15 +1,5 @@
-<script setup lang="ts">
-import { ref } from "vue";
-const emit = defineEmits(["search"]); // Define event
-const query = ref("");
-
-const handleKeyUpEnter = () => {
-  emit("search", query.value); // Emit search event with input value
-};
-</script>
-
 <template>
-  <div class="flex justify-center mt-6">
+  <div class="flex justify-center my-6">
     <div class="relative w-full max-w-md">
       <label for="search" class="sr-only">Search</label>
       <input
@@ -40,3 +30,13 @@ const handleKeyUpEnter = () => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref } from "vue";
+const emit = defineEmits(["search"]); // Define event
+const query = ref("");
+
+const handleKeyUpEnter = () => {
+  emit("search", query.value); // Emit search event with input value
+};
+</script>
