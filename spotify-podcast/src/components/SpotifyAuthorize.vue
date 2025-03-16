@@ -18,7 +18,7 @@
       </button>
     </div>
   </header>
-  <InputSearch @search="getPodcastList" />
+  <InputSearch @search="handleSearch" />
   <PodcastList
     v-if="!showCalendar"
     :selectedPodcasts="selectedPodcasts"
@@ -231,6 +231,14 @@ function showCalendarComponent() {
   }
 
   console.log(episodeList.value);
+}
+
+async function handleSearch(query: string) {
+  showCalendar.value = false;
+  podcasts.value = [];
+  selectedPodcasts.value = [];
+  episodeList.value = [];
+  return await getPodcastList(query);
 }
 
 onMounted(() => {

@@ -33,7 +33,9 @@
         class="w-full h-48 object-cover rounded-lg mb-4"
       />
       <p class="mb-4">{{ episode.name }}</p>
-      <p class="mb-4 text-sm text-gray-700">{{ episode.description }}</p>
+      <p class="mb-4 text-sm text-gray-700 text-ellipsis line-clamp-3">
+        {{ episode.description }}
+      </p>
       <p class="text-sm text-gray-600 mb-2">
         Release Date: {{ formattedReleaseDate }}
       </p>
