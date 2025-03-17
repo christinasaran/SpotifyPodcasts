@@ -1,14 +1,17 @@
 <template>
   <div
-    class="w-full h-screen p-4 bg-blue-800 font-semibold text-black overflow-hidden"
+    class="w-full h-screen p-4 bg-slate-200 font-semibold text-black overflow-hidden"
   >
     <vue-cal
       :events="events"
       :time="false"
+      events-on-month-view="short"
       @event-click="openModal"
-      default-view="month"
-      :views="['month', 'week']"
+      :disable-views="['years', 'year']"
+      active-view="month"
+      :views="['day', 'month', 'week']"
       class="w-full h-full shadow rounded-lg overflow-hidden"
+      aria-live="polite"
     />
     <Modal
       v-if="selectedEvent"
@@ -24,27 +27,18 @@ import { ref, defineProps, computed } from "vue";
 import VueCal from "vue-cal";
 import "vue-cal/dist/vuecal.css";
 import Modal from "./Modal.vue";
+import type { EpisodeList, SelectedEvent } from "../types/podcast";
 
 const props = defineProps<{
-  episodeList: Array<{
-    podcastId: string;
-    podcastName: string;
-    episodes: Array<{
-      release_date: string;
-      name: string;
-      description: string;
-      external_urls?: { spotify: string };
-      images?: Array<{ url: string }>;
-    }>;
-  }>;
+  episodeList: EpisodeList[];
 }>();
 
 const colorClasses: { [key: string]: string } = {
   "podcast-1": "bg-blue-600 text-white pt-2",
-  "podcast-2": "bg-violet-800 text-white pt-2",
-  "podcast-3": "bg-green-400 text-white pt-2",
-  "podcast-4": "bg-green-800 text-white pt-2",
-  "podcast-5": "bg-green-600 text-white pt-2",
+  "podcast-2": "bg-violet-600 text-white pt-2",
+  "podcast-3": "bg-teal-600 text-white pt-2",
+  "podcast-4": "bg-pink-600 text-white pt-2",
+  "podcast-5": "bg-gray-600 text-white pt-2",
 };
 
 const events = computed(() => {
@@ -53,7 +47,7 @@ const events = computed(() => {
     return podcast.episodes.map((episode) => ({
       start: episode.release_date,
       end: episode.release_date,
-      title: `<div class="${colorClass}">${podcast.podcastName}: <br /> ${episode.name}</div>`,
+      title: `<div class=" px-2 pb-2 overflow-hidden truncate ${colorClass}">${podcast.podcastName}: <br /> ${episode.name}</div>`,
 
       episode: {
         podcastName: podcast.podcastName,
@@ -63,10 +57,14 @@ const events = computed(() => {
   });
 });
 
-const selectedEvent = ref(null);
+const selectedEvent = ref<null | SelectedEvent>(null);
 
-function openModal(event) {
-  selectedEvent.value = event.episode;
+function openModal(event: { episode?: SelectedEvent }) {
+  if (event.episode) {
+    selectedEvent.value = event.episode;
+  } else {
+    selectedEvent.value = null;
+  }
 }
 
 function closeModal() {
@@ -74,20 +72,24 @@ function closeModal() {
 }
 </script>
 
-<style scoped>
-.podcast-1 {
-  @apply bg-blue-600;
+<style>
+.vuecal--month-view .vuecal__cell-content {
+  justify-content: flex-start;
+  height: 100%;
+  align-items: flex-end;
 }
-.podcast-2 {
-  @apply bg-green-500;
+
+.vuecal--month-view .vuecal__cell-date {
+  padding: 4px;
 }
-.podcast-3 {
-  @apply bg-red-red;
+.vuecal--month-view .vuecal__no-event {
+  display: none;
 }
-redcast-4 {
-  @apply bg-pink-500;
-}
-.podcast-5 {
-  @apply bg-purple-600;
+.vuecal--short-events .vuecal__event-title {
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0;
 }
 </style>

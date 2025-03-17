@@ -73,40 +73,42 @@ const props = defineProps<{
   };
 }>();
 
-const emit = defineEmits(["close"]);
+const emit = defineEmits<{
+  (e: "close"): void;
+}>();
 
-const isModalOpen = ref(true);
-const modal = ref(null);
+const isModalOpen = ref<boolean>(true);
+const modal = ref<HTMLElement | null>(null);
 
-const closeModal = () => {
+const closeModal = (): void => {
   isModalOpen.value = false;
   emit("close");
 };
 
-const formattedReleaseDate = computed(() => {
+const formattedReleaseDate = computed((): string => {
   return new Date(props.episode.release_date).toLocaleDateString();
 });
 
-const handleKeydown = (event: KeyboardEvent) => {
+const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key === "Escape") {
     closeModal();
   }
 };
 
-const openLink = (event: KeyboardEvent) => {
+const openLink = (event: KeyboardEvent): void => {
   if (event.target instanceof HTMLAnchorElement) {
     window.open(event.target.href, "_blank");
   }
 };
 
-onMounted(() => {
+onMounted((): void => {
   document.addEventListener("keydown", handleKeydown);
   if (modal.value) {
     modal.value.focus();
   }
 });
 
-onUnmounted(() => {
+onUnmounted((): void => {
   document.removeEventListener("keydown", handleKeydown);
 });
 </script>

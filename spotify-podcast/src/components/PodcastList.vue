@@ -3,7 +3,7 @@
     class="bg-blue-100 text-blue-900 px-4 py-4 rounded-md shadow-sm mt-4 select-none"
   >
     <div class="flex items-center justify-between" v-if="podcasts.length > 0">
-      <span class="font-semibold">
+      <span class="font-semibold" aria-live="polite">
         {{ selectedPodcasts.length }} of 5 podcasts selected
       </span>
       <button
@@ -87,6 +87,7 @@ function selectPodcast(id: string) {
     }
   }
 }
+
 // should have at least one selected podcast
 function onGenerateCalendarClick() {
   console.log(props.selectedPodcasts);

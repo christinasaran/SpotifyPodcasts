@@ -10,6 +10,7 @@
         class="w-full px-4 py-3 border border-gray-600 rounded-lg bg-black text-white placeholder-gray-400 focus:outline-none focus:ring focus:ring-green-400"
         @keyup.enter="handleKeyUpEnter"
         aria-label="Search podcasts"
+        aria-live="polite"
       />
       <div class="absolute inset-y-0 right-3 flex items-center">
         <svg
@@ -18,6 +19,7 @@
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path
             stroke-linecap="round"
@@ -33,10 +35,12 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-const emit = defineEmits(["search"]); // Define event
-const query = ref("");
+const emit = defineEmits<{
+  (e: "search", query: string): void;
+}>(); // Define event
+const query = ref<string>("");
 
-const handleKeyUpEnter = () => {
+const handleKeyUpEnter = (): void => {
   emit("search", query.value); // Emit search event with input value
 };
 </script>

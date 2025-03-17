@@ -7,12 +7,14 @@
       <button
         @click="redirectToSpotifyAuthorize"
         class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
+        aria-label="Authorize Spotify"
       >
         Authorize Spotify
       </button>
       <button
         @click="refreshTokenClick"
         class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring focus:ring-green-300 transition"
+        aria-label="Refresh Token"
       >
         Refresh Token
       </button>
@@ -24,6 +26,7 @@
     :selectedPodcasts="selectedPodcasts"
     :podcasts="podcasts"
     @generate-calendar="showCalendarComponent"
+    aria-live="polite"
   />
   <Calendar :episodeList="episodeList" v-else />
 </template>
@@ -204,6 +207,7 @@ async function getPodcastList(query: string): Promise<any> {
   selectedPodcasts.value = [];
   return podcasts.value;
 }
+
 async function getEpisodeList(id: string): Promise<any> {
   const response = await fetch(
     `https://api.spotify.com/v1/shows/${id}/episodes`,
@@ -233,12 +237,12 @@ function showCalendarComponent() {
   console.log(episodeList.value);
 }
 
-async function handleSearch(query: string) {
+async function handleSearch(query: string): Promise<void> {
   showCalendar.value = false;
   podcasts.value = [];
   selectedPodcasts.value = [];
   episodeList.value = [];
-  return await getPodcastList(query);
+  await getPodcastList(query);
 }
 
 onMounted(() => {
